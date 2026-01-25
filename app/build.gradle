@@ -1,12 +1,15 @@
-apply plugin: 'com.android.application'
+plugins {
+    id 'com.android.application'
+}
 
 android {
-    compileSdkVersion 28
+    namespace 'com.microprojects.gateopener'
+    compileSdk 28
     
     defaultConfig {
         applicationId "com.microprojects.gateopener"
-        minSdkVersion 16
-        targetSdkVersion 22
+        minSdk 16
+        targetSdk 22
         versionCode 1
         versionName "1.0"
     }
@@ -14,7 +17,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     
@@ -22,8 +25,6 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    
-    namespace 'com.microprojects.gateopener'
 }
 
 dependencies {
