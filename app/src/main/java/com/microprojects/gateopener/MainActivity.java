@@ -110,7 +110,7 @@ public class MainActivity extends Activity {
     }
 
     private void reloadLocalConfig() {
-        Toast.makeText(this, "Reloading local config from " + LocalConfigLoader.getConfigPath(), Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Reloading local config from " + LocalConfigLoader.getConfigPath(this), Toast.LENGTH_LONG).show();
         LocalConfigLoader.getInstance(this).loadConfigFromFile();
         
         new Handler().postDelayed(new Runnable() {

@@ -2,7 +2,6 @@ package com.microprojects.gateopener;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.Environment;
 import android.os.FileObserver;
 import android.util.Log;
 
@@ -16,7 +15,6 @@ import java.io.FileReader;
 public class LocalConfigLoader {
 
     private static final String TAG = "LocalConfigLoader";
-    private static final String CONFIG_DIR = "GateOpener";
     private static final String CONFIG_FILE = "config.json";
     
     private static LocalConfigLoader instance;
@@ -26,7 +24,7 @@ public class LocalConfigLoader {
 
     private LocalConfigLoader(Context context) {
         this.context = context.getApplicationContext();
-        this.configFile = getConfigFile();
+        this.configFile = getConfigFile(this.context);
     }
 
     public static synchronized LocalConfigLoader getInstance(Context context) {
@@ -36,24 +34,31 @@ public class LocalConfigLoader {
         return instance;
     }
 
-    public static File getConfigFile() {
-        File dir = new File(Environment.getExternalStorageDirectory(), CONFIG_DIR);
-        return new File(dir, CONFIG_FILE);
+    public static File getConfigFile(Context context) {
+        return new File(context.getFilesDir(), CONFIG_FILE);
     }
 
-    public static File getConfigDir() {
-        return new File(Environment.getExternalStorageDirectory(), CONFIG_DIR);
+    public static File getConfigDir(Context context) {
+        return context.getFilesDir();
+    }
+
+    public String getConfigPath() {
+        return getConfigFile(context).getAbsolutePath();
     }
 
     public void startWatching() {
         stopWatching();
         
-        File dir = getConfigDir();
+        File dir = getConfigDir(context);
         if (!dir.exists()) {
             if (dir.mkdirs()) {
                 Log.d(TAG, "Created config directory: " + dir.getAbsolutePath());
-                createSampleConfig();
             }
+        }
+        
+        File file = getConfigFile(context);
+        if (!file.exists()) {
+            createSampleConfig();
         }
 
         loadConfigFromFile();
@@ -79,7 +84,7 @@ public class LocalConfigLoader {
     }
 
     public void loadConfigFromFile() {
-        File file = getConfigFile();
+        File file = getConfigFile(context);
         
         if (!file.exists()) {
             Log.d(TAG, "Config file not found: " + file.getAbsolutePath());
@@ -167,7 +172,7 @@ public class LocalConfigLoader {
     }
 
     private void createSampleConfig() {
-        File file = getConfigFile();
+        File file = getConfigFile(context);
         try {
             java.io.FileWriter writer = new java.io.FileWriter(file);
             writer.write("{\n");
@@ -188,7 +193,7 @@ public class LocalConfigLoader {
         }
     }
 
-    public static String getConfigPath() {
-        return getConfigFile().getAbsolutePath();
+    public static String getConfigPath(Context context) {
+        return getConfigFile(context).getAbsolutePath();
     }
 }
