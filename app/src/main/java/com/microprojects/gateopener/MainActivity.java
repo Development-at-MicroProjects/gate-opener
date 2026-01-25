@@ -127,7 +127,7 @@ public class MainActivity extends Activity {
         String configUrl = prefs.getString("config_url", "");
         String configUsername = prefs.getString("config_username", "");
         String configPassword = prefs.getString("config_password", "");
-        String shellyUrl = prefs.getString("shelly_url", "http://192.168.1.100");
+        String shellyUrl = prefs.getString("shelly_url", "http://192.168.68.80");
         String whitelist = prefs.getString("whitelist", DEFAULT_WHITELIST);
         
         configUrlInput.setText(configUrl);
