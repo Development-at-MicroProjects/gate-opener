@@ -224,17 +224,20 @@ public class MainActivity extends Activity {
         }
         
         Toast.makeText(this, "Testing connection...", Toast.LENGTH_SHORT).show();
+        ActivityLogger.log(MainActivity.this, "Test button pressed - Triggering gate!");
         
         new Thread(new Runnable() {
             @Override
             public void run() {
-                final boolean success = ShellyClient.triggerGate(shellyUrl);
+                final boolean success = ShellyClient.triggerGate(shellyUrl, MainActivity.this);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         if (success) {
+                            ActivityLogger.log(MainActivity.this, "Gate triggered successfully!");
                             Toast.makeText(MainActivity.this, "Success! Gate triggered.", Toast.LENGTH_LONG).show();
                         } else {
+                            ActivityLogger.log(MainActivity.this, "ERROR: Failed to trigger gate");
                             Toast.makeText(MainActivity.this, "Failed to connect to Shelly", Toast.LENGTH_LONG).show();
                         }
                     }
