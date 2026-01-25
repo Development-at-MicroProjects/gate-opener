@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Gate Opener</string>
+    <string name="service_running">Service is running</string>
+    <string name="service_stopped">Service is stopped</string>
+    <string name="start_service">Start Service</string>
+    <string name="stop_service">Stop Service</string>
+    <string name="save_settings">Save Settings</string>
+    <string name="shelly_url_hint">Shelly URL (e.g., http://192.168.1.100)</string>
+    <string name="whitelist_hint">Whitelist (one number per line)</string>
+    <string name="settings_saved">Settings saved</string>
+    <string name="notification_title">Gate Opener Active</string>
+    <string name="notification_text">Monitoring incoming calls</string>
+</resources>
