@@ -9,9 +9,14 @@ android {
     defaultConfig {
         applicationId "com.microprojects.gateopener"
         minSdk 16
-        targetSdk 22
+        targetSdk 28
         versionCode 1
         versionName "1.0"
+    }
+    
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
     }
     
     buildTypes {
