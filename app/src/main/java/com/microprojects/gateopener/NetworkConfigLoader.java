@@ -94,6 +94,18 @@ public class NetworkConfigLoader {
             connection.setConnectTimeout(10000);
             connection.setReadTimeout(10000);
 
+            SharedPreferences prefs = context.getSharedPreferences("GateOpenerPrefs", Context.MODE_PRIVATE);
+            String username = prefs.getString("config_username", "");
+            String password = prefs.getString("config_password", "");
+            
+            if (!username.isEmpty() && !password.isEmpty()) {
+                String credentials = username + ":" + password;
+                String basicAuth = "Basic " + android.util.Base64.encodeToString(
+                        credentials.getBytes("UTF-8"), android.util.Base64.NO_WRAP);
+                connection.setRequestProperty("Authorization", basicAuth);
+                Log.d(TAG, "Using HTTP Basic Auth");
+            }
+
             int responseCode = connection.getResponseCode();
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
@@ -105,6 +117,9 @@ public class NetworkConfigLoader {
                 reader.close();
                 Log.d(TAG, "Config fetched successfully");
                 return response.toString();
+            } else if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
+                Log.e(TAG, "Authentication failed (401) - check username/password");
+                ActivityLogger.log(context, "Config auth failed - check credentials");
             } else {
                 Log.e(TAG, "HTTP error: " + responseCode);
             }

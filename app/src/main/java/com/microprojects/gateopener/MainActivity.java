@@ -24,6 +24,8 @@ public class MainActivity extends Activity {
     private TextView statusText;
     private TextView logText;
     private EditText configUrlInput;
+    private EditText configUsernameInput;
+    private EditText configPasswordInput;
     private EditText shellyUrlInput;
     private EditText whitelistInput;
     private Button startButton;
@@ -52,6 +54,8 @@ public class MainActivity extends Activity {
         statusText = (TextView) findViewById(R.id.statusText);
         logText = (TextView) findViewById(R.id.logText);
         configUrlInput = (EditText) findViewById(R.id.configUrlInput);
+        configUsernameInput = (EditText) findViewById(R.id.configUsernameInput);
+        configPasswordInput = (EditText) findViewById(R.id.configPasswordInput);
         shellyUrlInput = (EditText) findViewById(R.id.shellyUrlInput);
         whitelistInput = (EditText) findViewById(R.id.whitelistInput);
         startButton = (Button) findViewById(R.id.startButton);
@@ -98,10 +102,14 @@ public class MainActivity extends Activity {
 
     private void loadSettings() {
         String configUrl = prefs.getString("config_url", "");
+        String configUsername = prefs.getString("config_username", "");
+        String configPassword = prefs.getString("config_password", "");
         String shellyUrl = prefs.getString("shelly_url", "http://192.168.1.100");
         String whitelist = prefs.getString("whitelist", "");
         
         configUrlInput.setText(configUrl);
+        configUsernameInput.setText(configUsername);
+        configPasswordInput.setText(configPassword);
         shellyUrlInput.setText(shellyUrl);
         whitelistInput.setText(whitelist);
         
@@ -111,11 +119,15 @@ public class MainActivity extends Activity {
 
     private void saveSettings() {
         String configUrl = configUrlInput.getText().toString().trim();
+        String configUsername = configUsernameInput.getText().toString().trim();
+        String configPassword = configPasswordInput.getText().toString().trim();
         String shellyUrl = shellyUrlInput.getText().toString().trim();
         String whitelist = whitelistInput.getText().toString().trim();
         
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("config_url", configUrl);
+        editor.putString("config_username", configUsername);
+        editor.putString("config_password", configPassword);
         editor.putString("shelly_url", shellyUrl);
         editor.putString("whitelist", whitelist);
         editor.apply();
@@ -132,8 +144,13 @@ public class MainActivity extends Activity {
             return;
         }
         
+        String configUsername = configUsernameInput.getText().toString().trim();
+        String configPassword = configPasswordInput.getText().toString().trim();
+        
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("config_url", configUrl);
+        editor.putString("config_username", configUsername);
+        editor.putString("config_password", configPassword);
         editor.apply();
         
         Toast.makeText(this, "Reloading config...", Toast.LENGTH_SHORT).show();
