@@ -2,6 +2,7 @@ package com.microprojects.gateopener;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Environment;
 import android.os.FileObserver;
 import android.util.Log;
 
@@ -15,6 +16,7 @@ import java.io.FileReader;
 public class LocalConfigLoader {
 
     private static final String TAG = "LocalConfigLoader";
+    private static final String CONFIG_DIR = "GateOpener";
     private static final String CONFIG_FILE = "config.json";
     
     private static LocalConfigLoader instance;
@@ -35,11 +37,12 @@ public class LocalConfigLoader {
     }
 
     public static File getConfigFile(Context context) {
-        return new File(context.getFilesDir(), CONFIG_FILE);
+        File dir = new File(Environment.getExternalStorageDirectory(), CONFIG_DIR);
+        return new File(dir, CONFIG_FILE);
     }
 
     public static File getConfigDir(Context context) {
-        return context.getFilesDir();
+        return new File(Environment.getExternalStorageDirectory(), CONFIG_DIR);
     }
 
     public String getConfigPath() {
