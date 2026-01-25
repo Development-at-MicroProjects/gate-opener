@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Required permissions -->
+    <!-- Required permissions for Android 4.1.2 -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.PROCESS_OUTGOING_CALLS" />
@@ -11,7 +11,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <uses-sdk android:minSdkVersion="16" android:targetSdkVersion="16" />
 
     <application
         android:allowBackup="true"
@@ -22,7 +23,6 @@
         <!-- Main Activity -->
         <activity
             android:name=".MainActivity"
-            android:exported="true"
             android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -33,14 +33,12 @@
         <!-- Background Service -->
         <service
             android:name=".GateOpenerService"
-            android:enabled="true"
-            android:exported="false" />
+            android:enabled="true" />
 
         <!-- Phone Call Receiver - High priority to intercept calls -->
         <receiver
             android:name=".PhoneCallReceiver"
-            android:enabled="true"
-            android:exported="true">
+            android:enabled="true">
             <intent-filter android:priority="999">
                 <action android:name="android.intent.action.PHONE_STATE" />
             </intent-filter>
@@ -49,8 +47,7 @@
         <!-- Boot Receiver - Start service on device boot -->
         <receiver
             android:name=".BootReceiver"
-            android:enabled="true"
-            android:exported="true">
+            android:enabled="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
