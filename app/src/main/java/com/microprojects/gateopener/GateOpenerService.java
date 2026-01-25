@@ -35,6 +35,7 @@ public class GateOpenerService extends Service {
         
         WhitelistManager.getInstance(this).reloadWhitelist();
         
+        LocalConfigLoader.getInstance(this).startWatching();
         NetworkConfigLoader.getInstance(this).startPeriodicReload();
         
         ActivityLogger.log(this, "Service started");
@@ -45,6 +46,7 @@ public class GateOpenerService extends Service {
     @Override
     public void onDestroy() {
         isRunning = false;
+        LocalConfigLoader.getInstance(this).stopWatching();
         NetworkConfigLoader.getInstance(this).stopPeriodicReload();
         releaseWakeLock();
         ActivityLogger.log(this, "Service stopped");

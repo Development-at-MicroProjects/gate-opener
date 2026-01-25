@@ -98,12 +98,29 @@
 
         </LinearLayout>
 
-        <Button
-            android:id="@+id/reloadConfigButton"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Reload Config Now"
-            android:layout_marginBottom="24dp" />
+            android:orientation="horizontal"
+            android:layout_marginBottom="24dp">
+
+            <Button
+                android:id="@+id/reloadLocalConfigButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Reload Local"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/reloadConfigButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Reload Network"
+                android:layout_marginStart="4dp" />
+
+        </LinearLayout>
 
         <!-- Shelly URL Section -->
         <TextView

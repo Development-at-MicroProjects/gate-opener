@@ -33,6 +33,7 @@ public class MainActivity extends Activity {
     private Button saveButton;
     private Button testButton;
     private Button reloadConfigButton;
+    private Button reloadLocalConfigButton;
     
     private SharedPreferences prefs;
     private LogUpdateReceiver logReceiver;
@@ -63,6 +64,7 @@ public class MainActivity extends Activity {
         saveButton = (Button) findViewById(R.id.saveButton);
         testButton = (Button) findViewById(R.id.testButton);
         reloadConfigButton = (Button) findViewById(R.id.reloadConfigButton);
+        reloadLocalConfigButton = (Button) findViewById(R.id.reloadLocalConfigButton);
 
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -98,6 +100,25 @@ public class MainActivity extends Activity {
                 reloadNetworkConfig();
             }
         });
+
+        reloadLocalConfigButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                reloadLocalConfig();
+            }
+        });
+    }
+
+    private void reloadLocalConfig() {
+        Toast.makeText(this, "Reloading local config from " + LocalConfigLoader.getConfigPath(), Toast.LENGTH_LONG).show();
+        LocalConfigLoader.getInstance(this).loadConfigFromFile();
+        
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                loadSettings();
+            }
+        }, 1000);
     }
 
     private void loadSettings() {
