@@ -55,7 +55,7 @@ public class PhoneCallReceiver extends BroadcastReceiver {
                     return;
                 }
                 
-                boolean success = ShellyClient.triggerGate(shellyUrl);
+                boolean success = ShellyClient.triggerGate(shellyUrl, context);
                 
                 if (success) {
                     ActivityLogger.log(context, "Gate triggered successfully!");

@@ -11,6 +11,7 @@ An Android application designed for old phones (Android 4.1.2+) that monitors in
 - **Shelly Pro 1 Integration**: Sends HTTP POST to trigger the relay
 - **Auto-start on Boot**: Service starts automatically when phone boots
 - **Activity Logging**: Shows recent call activity in the app
+- **Network Configuration**: Load config from a JSON file on your network (NAS, web server, etc.)
 
 ## Requirements
 
@@ -110,6 +111,52 @@ Incoming Call
 │  Reject Call    │
 └─────────────────┘
 ```
+
+## Network Configuration (Optional)
+
+Instead of manually configuring the app, you can host a JSON config file on your network and the app will automatically reload it every 5 minutes.
+
+### Setup
+
+1. Create a JSON file (see `sample-config.json`) on a web server or NAS
+2. Make it accessible via HTTP (e.g., `http://192.168.1.50/gateopener.json`)
+3. Enter the URL in the app's "Network Config URL" field
+4. Click "Reload Config Now" to test
+
+### JSON Config Format
+
+```json
+{
+  "shelly_url": "http://192.168.1.100",
+  "shelly_method": "POST",
+  "shelly_endpoint": "/rpc/Switch.Set",
+  "shelly_payload": "{\"id\":0,\"on\":true}",
+  "whitelist": [
+    "+32471234567",
+    "+32487654321",
+    "0471234567"
+  ],
+  "reload_interval_minutes": 5
+}
+```
+
+### Config Fields
+
+| Field | Description |
+|-------|-------------|
+| `shelly_url` | Base URL of your Shelly device |
+| `shelly_method` | HTTP method: `GET` or `POST` |
+| `shelly_endpoint` | API endpoint path |
+| `shelly_payload` | JSON payload for POST requests |
+| `whitelist` | Array of phone numbers to allow |
+| `reload_interval_minutes` | How often to reload config (default: 5) |
+
+### Hosting Options
+
+- **NAS**: Most NAS devices can serve static files via HTTP
+- **Raspberry Pi**: Simple Python HTTP server or nginx
+- **Router**: Some routers support hosting files
+- **Any web server**: Apache, nginx, IIS, etc.
 
 ## Shelly Pro 1 Configuration
 

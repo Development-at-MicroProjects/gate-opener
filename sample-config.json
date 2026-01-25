@@ -1,0 +1,12 @@
+{
+  "shelly_url": "http://192.168.1.100",
+  "shelly_method": "POST",
+  "shelly_endpoint": "/rpc/Switch.Set",
+  "shelly_payload": "{\"id\":0,\"on\":true}",
+  "whitelist": [
+    "+32471234567",
+    "+32487654321",
+    "0471234567"
+  ],
+  "reload_interval_minutes": 5
+}

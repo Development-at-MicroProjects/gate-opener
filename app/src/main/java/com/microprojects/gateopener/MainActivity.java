@@ -10,6 +10,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -22,12 +23,14 @@ public class MainActivity extends Activity {
     
     private TextView statusText;
     private TextView logText;
+    private EditText configUrlInput;
     private EditText shellyUrlInput;
     private EditText whitelistInput;
     private Button startButton;
     private Button stopButton;
     private Button saveButton;
     private Button testButton;
+    private Button reloadConfigButton;
     
     private SharedPreferences prefs;
     private LogUpdateReceiver logReceiver;
@@ -48,12 +51,14 @@ public class MainActivity extends Activity {
     private void initViews() {
         statusText = (TextView) findViewById(R.id.statusText);
         logText = (TextView) findViewById(R.id.logText);
+        configUrlInput = (EditText) findViewById(R.id.configUrlInput);
         shellyUrlInput = (EditText) findViewById(R.id.shellyUrlInput);
         whitelistInput = (EditText) findViewById(R.id.whitelistInput);
         startButton = (Button) findViewById(R.id.startButton);
         stopButton = (Button) findViewById(R.id.stopButton);
         saveButton = (Button) findViewById(R.id.saveButton);
         testButton = (Button) findViewById(R.id.testButton);
+        reloadConfigButton = (Button) findViewById(R.id.reloadConfigButton);
 
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -82,12 +87,21 @@ public class MainActivity extends Activity {
                 testShellyConnection();
             }
         });
+
+        reloadConfigButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                reloadNetworkConfig();
+            }
+        });
     }
 
     private void loadSettings() {
+        String configUrl = prefs.getString("config_url", "");
         String shellyUrl = prefs.getString("shelly_url", "http://192.168.1.100");
         String whitelist = prefs.getString("whitelist", "");
         
+        configUrlInput.setText(configUrl);
         shellyUrlInput.setText(shellyUrl);
         whitelistInput.setText(whitelist);
         
@@ -96,10 +110,12 @@ public class MainActivity extends Activity {
     }
 
     private void saveSettings() {
+        String configUrl = configUrlInput.getText().toString().trim();
         String shellyUrl = shellyUrlInput.getText().toString().trim();
         String whitelist = whitelistInput.getText().toString().trim();
         
         SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("config_url", configUrl);
         editor.putString("shelly_url", shellyUrl);
         editor.putString("whitelist", whitelist);
         editor.apply();
@@ -107,6 +123,29 @@ public class MainActivity extends Activity {
         WhitelistManager.getInstance(this).reloadWhitelist();
         
         Toast.makeText(this, R.string.settings_saved, Toast.LENGTH_SHORT).show();
+    }
+
+    private void reloadNetworkConfig() {
+        String configUrl = configUrlInput.getText().toString().trim();
+        if (configUrl.isEmpty()) {
+            Toast.makeText(this, "Please enter a config URL first", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("config_url", configUrl);
+        editor.apply();
+        
+        Toast.makeText(this, "Reloading config...", Toast.LENGTH_SHORT).show();
+        
+        NetworkConfigLoader.getInstance(this).loadConfigFromNetwork();
+        
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                loadSettings();
+            }
+        }, 2000);
     }
 
     private void startGateOpenerService() {

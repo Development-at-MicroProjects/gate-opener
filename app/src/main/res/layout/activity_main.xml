@@ -53,6 +53,31 @@
 
         </LinearLayout>
 
+        <!-- Network Config URL Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Network Config URL (optional)"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/configUrlInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="http://192.168.1.x/gateopener.json"
+            android:inputType="textUri"
+            android:singleLine="true"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/reloadConfigButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Reload Config Now"
+            android:layout_marginBottom="24dp" />
+
         <!-- Shelly URL Section -->
         <TextView
             android:layout_width="match_parent"
