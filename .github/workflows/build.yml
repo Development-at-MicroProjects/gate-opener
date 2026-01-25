@@ -24,14 +24,12 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
+    - name: Generate Gradle Wrapper
+      run: |
+        gradle wrapper --gradle-version 7.5
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
-
-    - name: Create gradlew if missing
-      run: |
-        if [ ! -f gradlew ]; then
-          gradle wrapper --gradle-version 6.7.1
-        fi
 
     - name: Build Debug APK
       run: ./gradlew assembleDebug
