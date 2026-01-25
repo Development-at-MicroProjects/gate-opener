@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -36,6 +37,7 @@ public class MainActivity extends Activity {
     private Button reloadLocalConfigButton;
     
     private SharedPreferences prefs;
+    private TextView versionText;
     private LogUpdateReceiver logReceiver;
 
     @Override
@@ -65,6 +67,9 @@ public class MainActivity extends Activity {
         testButton = (Button) findViewById(R.id.testButton);
         reloadConfigButton = (Button) findViewById(R.id.reloadConfigButton);
         reloadLocalConfigButton = (Button) findViewById(R.id.reloadLocalConfigButton);
+        versionText = (TextView) findViewById(R.id.versionText);
+        
+        displayVersion();
 
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -107,6 +112,16 @@ public class MainActivity extends Activity {
                 reloadLocalConfig();
             }
         });
+    }
+
+    private void displayVersion() {
+        try {
+            PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+            String version = "Version " + pInfo.versionName + " (" + pInfo.versionCode + ")";
+            versionText.setText(version);
+        } catch (PackageManager.NameNotFoundException e) {
+            versionText.setText("Version unknown");
+        }
     }
 
     private void reloadLocalConfig() {
