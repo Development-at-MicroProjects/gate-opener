@@ -90,6 +90,32 @@ public class ShellyClient {
         String endpoint = baseUrl + "/rpc/Switch.Set";
         
         try {
+            // Turn ON
+            boolean onSuccess = sendShellyPro1Command(endpoint, true);
+            if (!onSuccess) {
+                return false;
+            }
+            
+            Log.d(TAG, "Shelly Pro 1: ON sent, waiting 500ms before OFF");
+            
+            // Wait 500ms (pulse duration)
+            Thread.sleep(500);
+            
+            // Turn OFF
+            boolean offSuccess = sendShellyPro1Command(endpoint, false);
+            Log.d(TAG, "Shelly Pro 1: OFF sent, success=" + offSuccess);
+            
+            return true; // Gate was triggered (ON was successful)
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Shelly Pro 1 request failed: " + e.getMessage());
+        }
+        
+        return false;
+    }
+
+    private static boolean sendShellyPro1Command(String endpoint, boolean on) {
+        try {
             URL url = new URL(endpoint);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
@@ -98,7 +124,7 @@ public class ShellyClient {
             connection.setReadTimeout(TIMEOUT_MS);
             connection.setDoOutput(true);
 
-            String jsonPayload = "{\"id\":0,\"on\":true}";
+            String jsonPayload = "{\"id\":0,\"on\":" + on + "}";
             
             OutputStream os = connection.getOutputStream();
             os.write(jsonPayload.getBytes("UTF-8"));
@@ -106,7 +132,7 @@ public class ShellyClient {
             os.close();
 
             int responseCode = connection.getResponseCode();
-            Log.d(TAG, "Shelly Pro 1 response code: " + responseCode);
+            Log.d(TAG, "Shelly Pro 1 response code: " + responseCode + " (on=" + on + ")");
 
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
@@ -116,8 +142,6 @@ public class ShellyClient {
                     response.append(line);
                 }
                 reader.close();
-                Log.d(TAG, "Shelly Pro 1 response: " + response.toString());
-                
                 connection.disconnect();
                 return true;
             }
@@ -125,7 +149,7 @@ public class ShellyClient {
             connection.disconnect();
             
         } catch (Exception e) {
-            Log.e(TAG, "Shelly Pro 1 request failed: " + e.getMessage());
+            Log.e(TAG, "Shelly Pro 1 command failed (on=" + on + "): " + e.getMessage());
         }
         
         return false;
