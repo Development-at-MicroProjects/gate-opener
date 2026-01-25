@@ -55,6 +55,33 @@ public class ShellyClient {
     }
 
     private static boolean triggerCustomShelly(String baseUrl, String endpoint, String method, String payload) {
+        try {
+            // Turn ON
+            boolean onSuccess = sendCustomShellyCommand(baseUrl, endpoint, method, payload);
+            if (!onSuccess) {
+                return false;
+            }
+            
+            Log.d(TAG, "Custom Shelly: ON sent, waiting 500ms before OFF");
+            
+            // Wait 500ms (pulse duration)
+            Thread.sleep(500);
+            
+            // Turn OFF - replace "true" with "false" in payload
+            String offPayload = payload.replace("true", "false");
+            boolean offSuccess = sendCustomShellyCommand(baseUrl, endpoint, method, offPayload);
+            Log.d(TAG, "Custom Shelly: OFF sent, success=" + offSuccess);
+            
+            return true; // Gate was triggered (ON was successful)
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Custom Shelly request failed: " + e.getMessage());
+        }
+        
+        return false;
+    }
+
+    private static boolean sendCustomShellyCommand(String baseUrl, String endpoint, String method, String payload) {
         String fullUrl = baseUrl + endpoint;
         
         try {
@@ -74,13 +101,13 @@ public class ShellyClient {
             }
 
             int responseCode = connection.getResponseCode();
-            Log.d(TAG, "Custom Shelly response code: " + responseCode);
+            Log.d(TAG, "Custom Shelly response code: " + responseCode + " payload: " + payload);
             connection.disconnect();
             
             return responseCode == HttpURLConnection.HTTP_OK;
             
         } catch (Exception e) {
-            Log.e(TAG, "Custom Shelly request failed: " + e.getMessage());
+            Log.e(TAG, "Custom Shelly command failed: " + e.getMessage());
         }
         
         return false;
