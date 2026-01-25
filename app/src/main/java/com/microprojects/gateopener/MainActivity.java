@@ -121,12 +121,14 @@ public class MainActivity extends Activity {
         }, 1000);
     }
 
+    private static final String DEFAULT_WHITELIST = "+32477707305\n+32480891081\n+32477783774\n+32468498861";
+
     private void loadSettings() {
         String configUrl = prefs.getString("config_url", "");
         String configUsername = prefs.getString("config_username", "");
         String configPassword = prefs.getString("config_password", "");
         String shellyUrl = prefs.getString("shelly_url", "http://192.168.1.100");
-        String whitelist = prefs.getString("whitelist", "");
+        String whitelist = prefs.getString("whitelist", DEFAULT_WHITELIST);
         
         configUrlInput.setText(configUrl);
         configUsernameInput.setText(configUsername);
