@@ -19,6 +19,32 @@ public class ShellyClient {
     private static final int MAX_RETRIES = 3;
     private static final int RETRY_DELAY_MS = 500;
     private static final int VERIFY_DELAY_MS = 100;
+    private static final int PING_TIMEOUT_MS = 3000;
+
+    public static boolean ping(String shellyBaseUrl) {
+        if (shellyBaseUrl == null || shellyBaseUrl.isEmpty()) {
+            return false;
+        }
+        
+        shellyBaseUrl = shellyBaseUrl.trim();
+        if (!shellyBaseUrl.startsWith("http://") && !shellyBaseUrl.startsWith("https://")) {
+            shellyBaseUrl = "http://" + shellyBaseUrl;
+        }
+        
+        try {
+            URL url = new URL(shellyBaseUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(PING_TIMEOUT_MS);
+            conn.setReadTimeout(PING_TIMEOUT_MS);
+            conn.setRequestMethod("HEAD");
+            int code = conn.getResponseCode();
+            conn.disconnect();
+            return code >= 200 && code < 400;
+        } catch (Exception e) {
+            Log.w(TAG, "Ping failed: " + e.getMessage());
+            return false;
+        }
+    }
 
     public static boolean triggerGate(String shellyBaseUrl) {
         return triggerGate(shellyBaseUrl, null);

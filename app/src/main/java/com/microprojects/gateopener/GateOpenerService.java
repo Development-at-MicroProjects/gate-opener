@@ -6,6 +6,8 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.net.wifi.WifiManager;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.support.v4.app.NotificationCompat;
@@ -16,6 +18,10 @@ public class GateOpenerService extends Service {
     private static boolean isRunning = false;
     
     private PowerManager.WakeLock wakeLock;
+    private WifiManager.WifiLock wifiLock;
+    
+    private Handler heartbeatHandler;
+    private static final long HEARTBEAT_INTERVAL_MS = 60000; // Every 60 seconds
 
     public static boolean isRunning() {
         return isRunning;
@@ -25,6 +31,8 @@ public class GateOpenerService extends Service {
     public void onCreate() {
         super.onCreate();
         acquireWakeLock();
+        acquireWifiLock();
+        startHeartbeat();
     }
 
     @Override
@@ -48,6 +56,8 @@ public class GateOpenerService extends Service {
         isRunning = false;
         LocalConfigLoader.getInstance(this).stopWatching();
         NetworkConfigLoader.getInstance(this).stopPeriodicReload();
+        stopHeartbeat();
+        releaseWifiLock();
         releaseWakeLock();
         ActivityLogger.log(this, "Service stopped");
         super.onDestroy();
@@ -91,4 +101,55 @@ public class GateOpenerService extends Service {
             wakeLock = null;
         }
     }
+
+    private void acquireWifiLock() {
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (wifiManager != null) {
+            wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "GateOpener::WifiLock");
+            wifiLock.acquire();
+            ActivityLogger.log(this, "WifiLock acquired - Wi-Fi will stay awake");
+        }
+    }
+
+    private void releaseWifiLock() {
+        if (wifiLock != null && wifiLock.isHeld()) {
+            wifiLock.release();
+            wifiLock = null;
+        }
+    }
+
+    private void startHeartbeat() {
+        heartbeatHandler = new Handler();
+        heartbeatHandler.postDelayed(heartbeatRunnable, HEARTBEAT_INTERVAL_MS);
+    }
+
+    private void stopHeartbeat() {
+        if (heartbeatHandler != null) {
+            heartbeatHandler.removeCallbacks(heartbeatRunnable);
+            heartbeatHandler = null;
+        }
+    }
+
+    private Runnable heartbeatRunnable = new Runnable() {
+        @Override
+        public void run() {
+            final Context ctx = GateOpenerService.this;
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    String shellyUrl = getSharedPreferences("GateOpenerPrefs", MODE_PRIVATE)
+                            .getString("shelly_url", "");
+                    if (!shellyUrl.isEmpty()) {
+                        boolean reachable = ShellyClient.ping(shellyUrl);
+                        if (!reachable) {
+                            ActivityLogger.log(ctx, "HEARTBEAT: Shelly unreachable!");
+                        }
+                    }
+                }
+            }).start();
+            if (heartbeatHandler != null) {
+                heartbeatHandler.postDelayed(this, HEARTBEAT_INTERVAL_MS);
+            }
+        }
+    };
 }

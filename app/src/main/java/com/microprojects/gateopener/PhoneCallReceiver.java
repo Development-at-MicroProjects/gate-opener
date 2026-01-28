@@ -3,6 +3,8 @@ package com.microprojects.gateopener;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.telephony.TelephonyManager;
 
 public class PhoneCallReceiver extends BroadcastReceiver {
@@ -22,6 +24,9 @@ public class PhoneCallReceiver extends BroadcastReceiver {
         if (TelephonyManager.EXTRA_STATE_RINGING.equals(state)) {
             String incomingNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER);
             
+            // Log Wi-Fi state for diagnostics
+            logWifiState(context);
+            
             if (incomingNumber == null || incomingNumber.isEmpty()) {
                 ActivityLogger.log(context, "Incoming call: Unknown number");
                 rejectCall(context);
@@ -34,16 +39,15 @@ public class PhoneCallReceiver extends BroadcastReceiver {
             
             if (isWhitelisted) {
                 ActivityLogger.log(context, "Number WHITELISTED - Triggering gate!");
-                triggerGate(context);
+                triggerGateAndReject(context);
             } else {
                 ActivityLogger.log(context, "Number NOT whitelisted - Rejecting");
+                rejectCall(context);
             }
-            
-            rejectCall(context);
         }
     }
 
-    private void triggerGate(final Context context) {
+    private void triggerGateAndReject(final Context context) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -52,6 +56,7 @@ public class PhoneCallReceiver extends BroadcastReceiver {
                 
                 if (shellyUrl.isEmpty()) {
                     ActivityLogger.log(context, "ERROR: Shelly URL not configured");
+                    rejectCall(context);
                     return;
                 }
                 
@@ -62,8 +67,31 @@ public class PhoneCallReceiver extends BroadcastReceiver {
                 } else {
                     ActivityLogger.log(context, "ERROR: Failed to trigger gate");
                 }
+                
+                // Reject call after gate trigger attempt (success or fail)
+                rejectCall(context);
             }
         }).start();
+    }
+
+    private void logWifiState(Context context) {
+        try {
+            WifiManager wifiManager = (WifiManager) context.getApplicationContext()
+                    .getSystemService(Context.WIFI_SERVICE);
+            if (wifiManager != null) {
+                WifiInfo info = wifiManager.getConnectionInfo();
+                if (info != null) {
+                    int rssi = info.getRssi();
+                    String ssid = info.getSSID();
+                    int linkSpeed = info.getLinkSpeed();
+                    ActivityLogger.log(context, String.format(
+                            "WiFi: %s, RSSI: %ddBm, Speed: %dMbps",
+                            ssid, rssi, linkSpeed));
+                }
+            }
+        } catch (Exception e) {
+            ActivityLogger.log(context, "WiFi state check failed: " + e.getMessage());
+        }
     }
 
     private void rejectCall(Context context) {
