@@ -38,8 +38,9 @@ public class PhoneCallReceiver extends BroadcastReceiver {
             boolean isWhitelisted = WhitelistManager.getInstance(context).isWhitelisted(incomingNumber);
             
             if (isWhitelisted) {
-                ActivityLogger.log(context, "Number WHITELISTED - Triggering gate!");
-                triggerGateAndReject(context);
+                ActivityLogger.log(context, "Number WHITELISTED - Rejecting call & triggering gate!");
+                rejectCall(context);  // Reject immediately to send busy signal
+                triggerGateInBackground(context);  // Then trigger gate
             } else {
                 ActivityLogger.log(context, "Number NOT whitelisted - Rejecting");
                 rejectCall(context);
@@ -47,7 +48,7 @@ public class PhoneCallReceiver extends BroadcastReceiver {
         }
     }
 
-    private void triggerGateAndReject(final Context context) {
+    private void triggerGateInBackground(final Context context) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -56,7 +57,6 @@ public class PhoneCallReceiver extends BroadcastReceiver {
                 
                 if (shellyUrl.isEmpty()) {
                     ActivityLogger.log(context, "ERROR: Shelly URL not configured");
-                    rejectCall(context);
                     return;
                 }
                 
@@ -67,9 +67,6 @@ public class PhoneCallReceiver extends BroadcastReceiver {
                 } else {
                     ActivityLogger.log(context, "ERROR: Failed to trigger gate");
                 }
-                
-                // Reject call after gate trigger attempt (success or fail)
-                rejectCall(context);
             }
         }).start();
     }
