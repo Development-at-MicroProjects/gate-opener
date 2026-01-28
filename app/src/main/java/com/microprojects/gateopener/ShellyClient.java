@@ -31,12 +31,15 @@ public class ShellyClient {
             shellyBaseUrl = "http://" + shellyBaseUrl;
         }
         
+        // Use /shelly endpoint which is supported by all Shelly devices
+        String pingUrl = shellyBaseUrl + "/shelly";
+        
         try {
-            URL url = new URL(shellyBaseUrl);
+            URL url = new URL(pingUrl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setConnectTimeout(PING_TIMEOUT_MS);
             conn.setReadTimeout(PING_TIMEOUT_MS);
-            conn.setRequestMethod("HEAD");
+            conn.setRequestMethod("GET");
             int code = conn.getResponseCode();
             conn.disconnect();
             return code >= 200 && code < 400;
