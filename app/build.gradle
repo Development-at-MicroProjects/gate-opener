@@ -11,8 +11,8 @@ android {
         applicationId "com.microprojects.gateopener"
         minSdk 16
         targetSdk 16
-        versionCode 9
-        versionName "1.5.3"
+        versionCode 10
+        versionName "1.6.0"
     }
     
     lint {

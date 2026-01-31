@@ -54,8 +54,13 @@ public class ShellyClient {
     }
 
     public static boolean triggerGate(String shellyBaseUrl, Context context) {
+        return triggerGate(shellyBaseUrl, context, null);
+    }
+
+    public static boolean triggerGate(String shellyBaseUrl, Context context, StringBuilder errorDetails) {
         if (shellyBaseUrl == null || shellyBaseUrl.isEmpty()) {
             Log.e(TAG, "Shelly URL is empty");
+            appendError(errorDetails, "URL empty");
             return false;
         }
 
@@ -75,35 +80,36 @@ public class ShellyClient {
             String customPayload = prefs.getString("shelly_payload", "");
             
             if (!customEndpoint.isEmpty()) {
-                return triggerCustomShelly(shellyBaseUrl, customEndpoint, customMethod, customPayload, context);
+                return triggerCustomShelly(shellyBaseUrl, customEndpoint, customMethod, customPayload, errorDetails);
             }
         }
 
-        boolean success = triggerShellyPro1(shellyBaseUrl, context);
+        boolean success = triggerShellyPro1(shellyBaseUrl, errorDetails);
         
         if (!success) {
-            success = triggerShellyGen1(shellyBaseUrl, context);
+            success = triggerShellyGen1(shellyBaseUrl, errorDetails);
         }
         
         return success;
     }
 
-    private static void logToUI(Context context, String message) {
-        Log.d(TAG, message);
-        if (context != null) {
-            ActivityLogger.log(context, message);
+    private static void appendError(StringBuilder errorDetails, String message) {
+        if (errorDetails != null) {
+            if (errorDetails.length() > 0) {
+                errorDetails.append("; ");
+            }
+            errorDetails.append(message);
         }
+        Log.e(TAG, message);
     }
 
-    private static boolean triggerCustomShelly(String baseUrl, String endpoint, String method, String payload, Context context) {
+    private static boolean triggerCustomShelly(String baseUrl, String endpoint, String method, String payload, StringBuilder errorDetails) {
         // Turn ON with retry
-        boolean onSuccess = sendCustomShellyCommandWithRetry(baseUrl, endpoint, method, payload, context);
+        boolean onSuccess = sendCustomShellyCommandWithRetry(baseUrl, endpoint, method, payload, errorDetails);
         if (!onSuccess) {
-            logToUI(context, "Custom Shelly: Failed to turn ON after " + MAX_RETRIES + " attempts");
+            appendError(errorDetails, "Custom Shelly: ON failed after " + MAX_RETRIES + " attempts");
             return false;
         }
-        
-        // Success - no logging needed
         
         try {
             Thread.sleep(500);
@@ -113,28 +119,21 @@ public class ShellyClient {
         
         // Turn OFF - replace "true" with "false" in payload
         String offPayload = payload.replace("true", "false");
-        boolean offSuccess = sendCustomShellyCommandWithRetry(baseUrl, endpoint, method, offPayload, context);
-        if (!offSuccess) {
-            logToUI(context, "Warning: Relay OFF failed");
-        }
+        sendCustomShellyCommandWithRetry(baseUrl, endpoint, method, offPayload, errorDetails);
         
         return true; // Gate was triggered (ON was successful)
     }
 
-    private static boolean sendCustomShellyCommandWithRetry(String baseUrl, String endpoint, String method, String payload, Context context) {
+    private static boolean sendCustomShellyCommandWithRetry(String baseUrl, String endpoint, String method, String payload, StringBuilder errorDetails) {
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-            if (attempt > 1) {
-                logToUI(context, "Retry attempt " + attempt + "/" + MAX_RETRIES);
-            }
-            
-            boolean success = sendCustomShellyCommand(baseUrl, endpoint, method, payload, context);
+            boolean success = sendCustomShellyCommand(baseUrl, endpoint, method, payload, errorDetails);
             if (success) {
                 return true;
             }
             
             if (attempt < MAX_RETRIES) {
                 try {
-                    Thread.sleep(RETRY_DELAY_MS * attempt); // Exponential backoff
+                    Thread.sleep(RETRY_DELAY_MS * attempt);
                 } catch (InterruptedException e) {
                     Log.e(TAG, "Retry delay interrupted");
                 }
@@ -143,7 +142,7 @@ public class ShellyClient {
         return false;
     }
 
-    private static boolean sendCustomShellyCommand(String baseUrl, String endpoint, String method, String payload, Context context) {
+    private static boolean sendCustomShellyCommand(String baseUrl, String endpoint, String method, String payload, StringBuilder errorDetails) {
         String fullUrl = baseUrl + endpoint;
         
         try {
@@ -167,31 +166,28 @@ public class ShellyClient {
             connection.disconnect();
             
             if (responseCode != HttpURLConnection.HTTP_OK) {
-                logToUI(context, "HTTP Error: " + responseCode);
+                appendError(errorDetails, "HTTP " + responseCode);
                 return false;
             }
             return true;
             
         } catch (Exception e) {
-            logToUI(context, "Connection error: " + e.getMessage());
-            Log.e(TAG, "Custom Shelly command failed: " + e.getMessage());
+            appendError(errorDetails, e.getMessage());
         }
         
         return false;
     }
 
-    private static boolean triggerShellyPro1(String baseUrl, Context context) {
+    private static boolean triggerShellyPro1(String baseUrl, StringBuilder errorDetails) {
         String setEndpoint = baseUrl + "/rpc/Switch.Set";
         String statusEndpoint = baseUrl + "/rpc/Switch.GetStatus?id=0";
         
         // Turn ON with retry and verification
-        boolean onSuccess = sendShellyPro1CommandWithRetry(setEndpoint, true, statusEndpoint, context);
+        boolean onSuccess = sendShellyPro1CommandWithRetry(setEndpoint, true, statusEndpoint, errorDetails);
         if (!onSuccess) {
-            logToUI(context, "Shelly Pro 1: Failed to turn ON after " + MAX_RETRIES + " attempts");
+            appendError(errorDetails, "Pro1: ON failed");
             return false;
         }
-        
-        // Success - no logging needed
         
         try {
             Thread.sleep(500);
@@ -200,21 +196,14 @@ public class ShellyClient {
         }
         
         // Turn OFF with retry
-        boolean offSuccess = sendShellyPro1CommandWithRetry(setEndpoint, false, statusEndpoint, context);
-        if (!offSuccess) {
-            logToUI(context, "Warning: Relay OFF failed");
-        }
+        sendShellyPro1CommandWithRetry(setEndpoint, false, statusEndpoint, errorDetails);
         
         return true; // Gate was triggered (ON was successful and verified)
     }
 
-    private static boolean sendShellyPro1CommandWithRetry(String endpoint, boolean on, String statusEndpoint, Context context) {
+    private static boolean sendShellyPro1CommandWithRetry(String endpoint, boolean on, String statusEndpoint, StringBuilder errorDetails) {
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-            if (attempt > 1) {
-                logToUI(context, "Retry attempt " + attempt + "/" + MAX_RETRIES + " (" + (on ? "ON" : "OFF") + ")");
-            }
-            
-            boolean commandSent = sendShellyPro1Command(endpoint, on, context);
+            boolean commandSent = sendShellyPro1Command(endpoint, on, errorDetails);
             if (!commandSent) {
                 Log.w(TAG, "Command failed on attempt " + attempt);
                 if (attempt < MAX_RETRIES) {
@@ -234,9 +223,9 @@ public class ShellyClient {
                 Log.e(TAG, "Verify delay interrupted");
             }
             
-            Boolean actualState = getRelayState(statusEndpoint, context);
+            Boolean actualState = getRelayState(statusEndpoint);
             if (actualState == null) {
-                logToUI(context, "Could not verify relay state");
+                Log.w(TAG, "Could not verify relay state on attempt " + attempt);
                 if (attempt < MAX_RETRIES) {
                     try {
                         Thread.sleep(RETRY_DELAY_MS * attempt);
@@ -251,7 +240,7 @@ public class ShellyClient {
                 Log.d(TAG, "Relay state verified: " + (on ? "ON" : "OFF"));
                 return true;
             } else {
-                logToUI(context, "Relay state mismatch! Expected: " + on + ", Actual: " + actualState);
+                Log.w(TAG, "Relay state mismatch! Expected: " + on + ", Actual: " + actualState);
                 if (attempt < MAX_RETRIES) {
                     try {
                         Thread.sleep(RETRY_DELAY_MS * attempt);
@@ -265,7 +254,7 @@ public class ShellyClient {
         return false;
     }
 
-    private static Boolean getRelayState(String statusEndpoint, Context context) {
+    private static Boolean getRelayState(String statusEndpoint) {
         try {
             URL url = new URL(statusEndpoint);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -303,7 +292,7 @@ public class ShellyClient {
         return null;
     }
 
-    private static boolean sendShellyPro1Command(String endpoint, boolean on, Context context) {
+    private static boolean sendShellyPro1Command(String endpoint, boolean on, StringBuilder errorDetails) {
         try {
             URL url = new URL(endpoint);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -340,44 +329,30 @@ public class ShellyClient {
                 if (responseStr.contains("was_on")) {
                     return true;
                 } else {
-                    logToUI(context, "Unexpected response: " + responseStr);
+                    appendError(errorDetails, "Unexpected response");
                     return false;
                 }
             } else {
-                // Read error stream for more info
-                try {
-                    BufferedReader errorReader = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
-                    StringBuilder errorResponse = new StringBuilder();
-                    String errorLine;
-                    while ((errorLine = errorReader.readLine()) != null) {
-                        errorResponse.append(errorLine);
-                    }
-                    errorReader.close();
-                    logToUI(context, "HTTP Error " + responseCode + ": " + errorResponse.toString());
-                } catch (Exception ignored) {
-                    logToUI(context, "HTTP Error: " + responseCode);
-                }
+                appendError(errorDetails, "HTTP " + responseCode);
             }
 
             connection.disconnect();
             
         } catch (Exception e) {
-            logToUI(context, "Connection error: " + e.getMessage());
+            appendError(errorDetails, e.getMessage());
             Log.e(TAG, "Shelly Pro 1 command failed (on=" + on + "): " + e.getMessage());
         }
         
         return false;
     }
 
-    private static boolean triggerShellyGen1(String baseUrl, Context context) {
+    private static boolean triggerShellyGen1(String baseUrl, StringBuilder errorDetails) {
         // Turn ON with retry
-        boolean onSuccess = sendShellyGen1CommandWithRetry(baseUrl, true, context);
+        boolean onSuccess = sendShellyGen1CommandWithRetry(baseUrl, true, errorDetails);
         if (!onSuccess) {
-            logToUI(context, "Shelly Gen1: Failed to turn ON after " + MAX_RETRIES + " attempts");
+            appendError(errorDetails, "Gen1: ON failed");
             return false;
         }
-        
-        // Success - no logging needed
         
         try {
             Thread.sleep(500);
@@ -386,21 +361,14 @@ public class ShellyClient {
         }
         
         // Turn OFF with retry
-        boolean offSuccess = sendShellyGen1CommandWithRetry(baseUrl, false, context);
-        if (!offSuccess) {
-            logToUI(context, "Warning: Relay OFF failed");
-        }
+        sendShellyGen1CommandWithRetry(baseUrl, false, errorDetails);
         
         return true;
     }
 
-    private static boolean sendShellyGen1CommandWithRetry(String baseUrl, boolean on, Context context) {
+    private static boolean sendShellyGen1CommandWithRetry(String baseUrl, boolean on, StringBuilder errorDetails) {
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-            if (attempt > 1) {
-                logToUI(context, "Retry attempt " + attempt + "/" + MAX_RETRIES + " (" + (on ? "ON" : "OFF") + ")");
-            }
-            
-            boolean success = sendShellyGen1Command(baseUrl, on, context);
+            boolean success = sendShellyGen1Command(baseUrl, on, errorDetails);
             if (success) {
                 return true;
             }
@@ -416,7 +384,7 @@ public class ShellyClient {
         return false;
     }
 
-    private static boolean sendShellyGen1Command(String baseUrl, boolean on, Context context) {
+    private static boolean sendShellyGen1Command(String baseUrl, boolean on, StringBuilder errorDetails) {
         String endpoint = baseUrl + "/relay/0?turn=" + (on ? "on" : "off");
         
         try {
@@ -440,21 +408,16 @@ public class ShellyClient {
                 String responseStr = response.toString();
                 Log.d(TAG, "Shelly Gen1 response: " + responseStr);
                 
-                // Validate response contains expected state
-                if (responseStr.contains("\"ison\":" + on) || responseStr.contains("\"ison\": " + on)) {
-                    Log.d(TAG, "Shelly Gen1 state verified: " + (on ? "ON" : "OFF"));
-                }
-                
                 connection.disconnect();
                 return true;
             } else {
-                logToUI(context, "HTTP Error: " + responseCode);
+                appendError(errorDetails, "HTTP " + responseCode);
             }
 
             connection.disconnect();
             
         } catch (Exception e) {
-            logToUI(context, "Connection error: " + e.getMessage());
+            appendError(errorDetails, e.getMessage());
             Log.e(TAG, "Shelly Gen1 request failed (on=" + on + "): " + e.getMessage());
         }
         

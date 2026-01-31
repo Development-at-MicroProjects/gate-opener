@@ -24,31 +24,25 @@ public class PhoneCallReceiver extends BroadcastReceiver {
         if (TelephonyManager.EXTRA_STATE_RINGING.equals(state)) {
             String incomingNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER);
             
-            // Log Wi-Fi state for diagnostics
-            logWifiState(context);
-            
             if (incomingNumber == null || incomingNumber.isEmpty()) {
-                ActivityLogger.log(context, "Incoming call: Unknown number");
+                ActivityLogger.log(context, "UNKNOWN - REJECTED");
                 rejectCall(context);
                 return;
             }
             
-            ActivityLogger.log(context, "Incoming call from: " + incomingNumber);
-            
             boolean isWhitelisted = WhitelistManager.getInstance(context).isWhitelisted(incomingNumber);
             
             if (isWhitelisted) {
-                ActivityLogger.log(context, "Number WHITELISTED - Rejecting call & triggering gate!");
-                rejectCall(context);  // Reject immediately to send busy signal
-                triggerGateInBackground(context);  // Then trigger gate
+                rejectCall(context);
+                triggerGateInBackground(context, incomingNumber);
             } else {
-                ActivityLogger.log(context, "Number NOT whitelisted - Rejecting");
+                ActivityLogger.log(context, incomingNumber + " - UNKNOWN - REJECTED");
                 rejectCall(context);
             }
         }
     }
 
-    private void triggerGateInBackground(final Context context) {
+    private void triggerGateInBackground(final Context context, final String phoneNumber) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -56,22 +50,24 @@ public class PhoneCallReceiver extends BroadcastReceiver {
                         .getString("shelly_url", "");
                 
                 if (shellyUrl.isEmpty()) {
-                    ActivityLogger.log(context, "ERROR: Shelly URL not configured");
+                    ActivityLogger.log(context, phoneNumber + " - WHITELISTED - FAILURE (Shelly URL not configured)");
                     return;
                 }
                 
-                boolean success = ShellyClient.triggerGate(shellyUrl, context);
+                StringBuilder errorDetails = new StringBuilder();
+                boolean success = ShellyClient.triggerGate(shellyUrl, context, errorDetails);
                 
                 if (success) {
-                    ActivityLogger.log(context, "Gate triggered successfully!");
+                    ActivityLogger.log(context, phoneNumber + " - WHITELISTED - SUCCESS");
                 } else {
-                    ActivityLogger.log(context, "ERROR: Failed to trigger gate");
+                    String wifiInfo = getWifiInfo(context);
+                    ActivityLogger.log(context, phoneNumber + " - WHITELISTED - FAILURE | " + errorDetails.toString() + " | " + wifiInfo);
                 }
             }
         }).start();
     }
 
-    private void logWifiState(Context context) {
+    private String getWifiInfo(Context context) {
         try {
             WifiManager wifiManager = (WifiManager) context.getApplicationContext()
                     .getSystemService(Context.WIFI_SERVICE);
@@ -81,14 +77,13 @@ public class PhoneCallReceiver extends BroadcastReceiver {
                     int rssi = info.getRssi();
                     String ssid = info.getSSID();
                     int linkSpeed = info.getLinkSpeed();
-                    ActivityLogger.log(context, String.format(
-                            "WiFi: %s, RSSI: %ddBm, Speed: %dMbps",
-                            ssid, rssi, linkSpeed));
+                    return String.format("WiFi: %s, RSSI: %ddBm, Speed: %dMbps", ssid, rssi, linkSpeed);
                 }
             }
         } catch (Exception e) {
-            ActivityLogger.log(context, "WiFi state check failed: " + e.getMessage());
+            return "WiFi: check failed - " + e.getMessage();
         }
+        return "WiFi: unavailable";
     }
 
     private void rejectCall(Context context) {

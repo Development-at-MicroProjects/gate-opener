@@ -13,7 +13,7 @@ public class ActivityLogger {
 
     private static final String TAG = "ActivityLogger";
     private static final int MAX_LOG_LINES = 50;
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("MM-dd HH:mm:ss", Locale.US);
+    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM HH:mm:ss", Locale.US);
 
     public static void log(Context context, String message) {
         String timestamp = dateFormat.format(new Date());

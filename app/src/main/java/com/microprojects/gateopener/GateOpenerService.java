@@ -107,7 +107,6 @@ public class GateOpenerService extends Service {
         if (wifiManager != null) {
             wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "GateOpener::WifiLock");
             wifiLock.acquire();
-            ActivityLogger.log(this, "WifiLock acquired - Wi-Fi will stay awake");
         }
     }
 
