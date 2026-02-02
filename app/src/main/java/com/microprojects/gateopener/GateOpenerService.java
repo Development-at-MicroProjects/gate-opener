@@ -21,7 +21,9 @@ public class GateOpenerService extends Service {
     private WifiManager.WifiLock wifiLock;
     
     private Handler heartbeatHandler;
-    private static final long HEARTBEAT_INTERVAL_MS = 60000; // Every 60 seconds
+    private static final long HEARTBEAT_INTERVAL_MS = 300000; // Every 5 minutes
+    private static final int HEARTBEAT_RETRIES = 2;
+    private static final long HEARTBEAT_RETRY_DELAY_MS = 2000;
 
     public static boolean isRunning() {
         return isRunning;
@@ -139,7 +141,20 @@ public class GateOpenerService extends Service {
                     String shellyUrl = getSharedPreferences("GateOpenerPrefs", MODE_PRIVATE)
                             .getString("shelly_url", "");
                     if (!shellyUrl.isEmpty()) {
-                        boolean reachable = ShellyClient.ping(shellyUrl);
+                        boolean reachable = false;
+                        for (int attempt = 0; attempt <= HEARTBEAT_RETRIES; attempt++) {
+                            reachable = ShellyClient.ping(shellyUrl);
+                            if (reachable) {
+                                break;
+                            }
+                            if (attempt < HEARTBEAT_RETRIES) {
+                                try {
+                                    Thread.sleep(HEARTBEAT_RETRY_DELAY_MS);
+                                } catch (InterruptedException e) {
+                                    break;
+                                }
+                            }
+                        }
                         if (!reachable) {
                             ActivityLogger.log(ctx, "HEARTBEAT: Shelly unreachable!");
                         }
