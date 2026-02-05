@@ -42,6 +42,9 @@ public class PhoneCallReceiver extends BroadcastReceiver {
         }
     }
 
+    private static final int GATE_TRIGGER_ROUNDS = 3;
+    private static final long ROUND_DELAY_MS = 3000;
+
     private void triggerGateInBackground(final Context context, final String phoneNumber) {
         new Thread(new Runnable() {
             @Override
@@ -55,7 +58,21 @@ public class PhoneCallReceiver extends BroadcastReceiver {
                 }
                 
                 StringBuilder errorDetails = new StringBuilder();
-                boolean success = ShellyClient.triggerGate(shellyUrl, context, errorDetails);
+                boolean success = false;
+                
+                for (int round = 1; round <= GATE_TRIGGER_ROUNDS && !success; round++) {
+                    if (round > 1) {
+                        // Try to wake up WiFi before retry
+                        reassociateWifi(context);
+                        try {
+                            Thread.sleep(ROUND_DELAY_MS);
+                        } catch (InterruptedException e) {
+                            break;
+                        }
+                        errorDetails.append(" [Round ").append(round).append("] ");
+                    }
+                    success = ShellyClient.triggerGate(shellyUrl, context, errorDetails);
+                }
                 
                 if (success) {
                     ActivityLogger.log(context, phoneNumber + " - WHITELISTED - SUCCESS");
@@ -65,6 +82,18 @@ public class PhoneCallReceiver extends BroadcastReceiver {
                 }
             }
         }).start();
+    }
+
+    private void reassociateWifi(Context context) {
+        try {
+            WifiManager wifiManager = (WifiManager) context.getApplicationContext()
+                    .getSystemService(Context.WIFI_SERVICE);
+            if (wifiManager != null) {
+                wifiManager.reassociate();
+            }
+        } catch (Exception e) {
+            // Ignore - best effort
+        }
     }
 
     private String getWifiInfo(Context context) {
