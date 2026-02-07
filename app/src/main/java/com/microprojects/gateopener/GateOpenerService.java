@@ -21,9 +21,9 @@ public class GateOpenerService extends Service {
     private WifiManager.WifiLock wifiLock;
     
     private Handler heartbeatHandler;
-    private static final long HEARTBEAT_INTERVAL_MS = 300000; // Every 5 minutes
-    private static final int HEARTBEAT_RETRIES = 2;
-    private static final long HEARTBEAT_RETRY_DELAY_MS = 2000;
+    private static final long KEEPALIVE_INTERVAL_MS = 30000; // Every 30 seconds
+    private static final int LOG_FAILURE_EVERY_N = 10; // Log once per ~5 minutes of failures
+    private int consecutiveFailures = 0;
 
     public static boolean isRunning() {
         return isRunning;
@@ -121,7 +121,7 @@ public class GateOpenerService extends Service {
 
     private void startHeartbeat() {
         heartbeatHandler = new Handler();
-        heartbeatHandler.postDelayed(heartbeatRunnable, HEARTBEAT_INTERVAL_MS);
+        heartbeatHandler.postDelayed(heartbeatRunnable, KEEPALIVE_INTERVAL_MS);
     }
 
     private void stopHeartbeat() {
@@ -141,28 +141,23 @@ public class GateOpenerService extends Service {
                     String shellyUrl = getSharedPreferences("GateOpenerPrefs", MODE_PRIVATE)
                             .getString("shelly_url", "");
                     if (!shellyUrl.isEmpty()) {
-                        boolean reachable = false;
-                        for (int attempt = 0; attempt <= HEARTBEAT_RETRIES; attempt++) {
-                            reachable = ShellyClient.ping(shellyUrl);
-                            if (reachable) {
-                                break;
+                        boolean reachable = ShellyClient.ping(shellyUrl);
+                        if (reachable) {
+                            if (consecutiveFailures > 0) {
+                                ActivityLogger.log(ctx, "KEEPALIVE: WiFi recovered after " + consecutiveFailures + " failures");
                             }
-                            if (attempt < HEARTBEAT_RETRIES) {
-                                try {
-                                    Thread.sleep(HEARTBEAT_RETRY_DELAY_MS);
-                                } catch (InterruptedException e) {
-                                    break;
-                                }
+                            consecutiveFailures = 0;
+                        } else {
+                            consecutiveFailures++;
+                            if (consecutiveFailures % LOG_FAILURE_EVERY_N == 1) {
+                                ActivityLogger.log(ctx, "KEEPALIVE: Shelly unreachable (" + consecutiveFailures + ")");
                             }
-                        }
-                        if (!reachable) {
-                            ActivityLogger.log(ctx, "HEARTBEAT: Shelly unreachable!");
                         }
                     }
                 }
             }).start();
             if (heartbeatHandler != null) {
-                heartbeatHandler.postDelayed(this, HEARTBEAT_INTERVAL_MS);
+                heartbeatHandler.postDelayed(this, KEEPALIVE_INTERVAL_MS);
             }
         }
     };
