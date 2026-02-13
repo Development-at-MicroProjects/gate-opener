@@ -4,12 +4,14 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.provider.Settings;
 import android.support.v4.app.NotificationCompat;
 
 public class GateOpenerService extends Service {
@@ -21,8 +23,8 @@ public class GateOpenerService extends Service {
     private WifiManager.WifiLock wifiLock;
     
     private Handler heartbeatHandler;
-    private static final long KEEPALIVE_INTERVAL_MS = 30000; // Every 30 seconds
-    private static final int LOG_FAILURE_EVERY_N = 10; // Log once per ~5 minutes of failures
+    private static final long KEEPALIVE_INTERVAL_MS = 300000; // Every 5 minutes
+    private static final int LOG_FAILURE_EVERY_N = 1; // Log every failure
     private int consecutiveFailures = 0;
 
     public static boolean isRunning() {
@@ -86,14 +88,26 @@ public class GateOpenerService extends Service {
         startForeground(NOTIFICATION_ID, notification);
     }
 
+    @SuppressWarnings("deprecation")
     private void acquireWakeLock() {
         PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
         if (powerManager != null) {
             wakeLock = powerManager.newWakeLock(
-                    PowerManager.PARTIAL_WAKE_LOCK,
+                    PowerManager.SCREEN_DIM_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP,
                     "GateOpener::WakeLock"
             );
             wakeLock.acquire();
+            setScreenBrightnessToMinimum();
+        }
+    }
+
+    private void setScreenBrightnessToMinimum() {
+        try {
+            ContentResolver cr = getContentResolver();
+            Settings.System.putInt(cr, Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
+            Settings.System.putInt(cr, Settings.System.SCREEN_BRIGHTNESS, 0);
+        } catch (Exception e) {
+            // Best effort - may fail without WRITE_SETTINGS permission
         }
     }
 
